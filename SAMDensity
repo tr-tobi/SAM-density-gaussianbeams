@@ -1,0 +1,49 @@
+from math import *
+from scipy.special import genlaguerre
+import numpy as np
+import matplotlib.pyplot as plt
+
+size = 320
+I_0 = 1.
+w = size/4
+
+p = 1
+l = 0
+
+def linear_to_sRGP(l):
+    if l <= 0.00304:
+        l = 12.92*1
+    else:
+        l = 1.055*pow(l, 1.0/2.4) - 0.055
+        return 255.0 *l
+    
+raw = np.zeros((size, size), dtype=float)
+
+high = 0
+
+for x in range(1, size, 2):
+    for y in range(1,size, 2):
+        r = hypot(x, y)
+        phi = atan2(x, y)
+        I = I_0 * rho**l * (genlaguerre(p,1)(rho))**2 \
+         * cos(l*phi)**2 * exp(-rho)
+        
+        if I > high : high = I
+        raw[size//2+(x-1)//2,size//2+(y-1)//2] = I
+        raw[size//2+(x-1)//2,size//2+(y+1)//2] = I 
+        raw[size//2+(x+1)//2,size//2+(y-1)//2] = I 
+        raw[size//2+(x+1)//2,size//2+(y+1)//2] = I
+
+
+cooked = np.zeros((size, size), dtype = int)
+
+for x in range(size):
+    for y in range (size):
+        I = raw[x,y]/high
+        cooked[x,y] = linear_to_sRGP(I)
+
+fix, ax = plt.subplots()
+ax.set_xlabel('X/μm')
+ax.set_ylabel('Y/μm')
+plt.imshow(cooked, cmap='gray')
+plt.show()
